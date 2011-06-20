@@ -118,23 +118,27 @@ let request outchan headers meth body (address, _, path) =
 
 let id x = x
 
-let parse_content_range s =
+let parse_content_range headers =
   try
+    let s = List.assoc "content-range" headers in
     let start, fini, total = Scanf.sscanf s "bytes %d-%d/%d" 
       (fun start fini total -> start, fini, total) 
     in
     Some (start, fini, total)
-  with Scanf.Scan_failure _ ->
-    None
+  with
+    | Not_found | Scanf.Scan_failure _ ->
+        None
 
-(* if we see a "Content-Range" header, than we should limit the
+
+(* if we see a "Content-Range" or "Content-length" header, than we should limit the
    number of bytes we attempt to read *)
-let content_length_of_content_range headers = 
+let content_length_of_content_range headers =
   try
     (* assuming header keys were downcased in previous step *)
-    let range_s = List.assoc "content-range" headers in
-    match parse_content_range range_s with
-      | Some (start, fini, total) ->
+    let range_s = parse_content_range headers in (* check http protocole to see if content_lenght is before of after content-range *)
+    let content_lenght = try Some (List.assoc "content-length" headers) with Not_found -> None in
+    match range_s, content_lenght with
+      | Some (start, fini, total), _ ->
           (* some sanity checking before we act on these values *)
         if fini < total && start <= total && 0 <= start && 0 <= total then (
           let num_bytes_to_read = fini - start + 1 in
@@ -142,7 +146,9 @@ let content_length_of_content_range headers =
         )
         else
           None
-      | None -> 
+      | None, Some nb ->
+          Some (int_of_string nb)
+      | None, None ->
         None
   with Not_found ->
     None
@@ -195,7 +201,7 @@ let call headers kind request_body url response_body =
        with exn -> 
          fail (Tcp_error (Write, exn))
       ) >> (
-        try_lwt 
+        try_lwt
           read_response i response_body
         with
           | (Http_error _) as e -> fail e
@@ -219,11 +225,11 @@ let call_to_chan headers kind request_body url outchan =
     | `C h -> return h
     | _ -> assert false
 
-let head   ?headers               url = call_to_string headers `HEAD   `None url 
-let get    ?headers               url = call_to_string headers `GET    `None url 
-let post   ?headers ?(body=`None) url = call_to_string headers `POST    body url 
-let put    ?headers ?(body=`None) url = call_to_string headers `PUT     body url 
-let delete ?headers               url = call_to_string headers `DELETE `None url 
+let head   ?headers               url = call_to_string headers `HEAD   `None url
+let get    ?headers               url = call_to_string headers `GET    `None url
+let post   ?headers ?(body=`None) url = call_to_string headers `POST    body url
+let put    ?headers ?(body=`None) url = call_to_string headers `PUT     body url
+let delete ?headers               url = call_to_string headers `DELETE `None url
 
 let head_to_chan   ?headers               url ch = call_to_chan headers `HEAD   `None url ch
 let get_to_chan    ?headers               url ch = call_to_chan headers `GET    `None url ch
