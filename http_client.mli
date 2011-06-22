@@ -102,3 +102,8 @@ val put_to_chan :
 *)
 val delete : ?headers:headers -> string -> (headers * string) Lwt.t
 val delete_to_chan: ?headers:headers -> string -> Lwt_io.output_channel -> headers Lwt.t
+
+val parse_url: string -> string * int * string
+val request: Lwt_io.output_channel -> headers option -> string -> request_body -> (string * int * string) -> unit Lwt.t
+val read_response: Lwt_io.input_channel -> [< `OutChannel of Lwt_io.output_channel | `String ] -> [> `C of headers | `S of headers * string ] Lwt.t
+
