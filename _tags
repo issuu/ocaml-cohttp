@@ -1,0 +1,9 @@
+# OASIS_START
+# DO NOT EDIT (digest: 608a5d2ba1c594f5ef6417c70273773a)
+# Library cohttp
+"lib": include
+<lib/*.ml{,i}>: pkg_netstring
+<lib/*.ml{,i}>: pkg_lwt.syntax
+<lib/*.ml{,i}>: pkg_lwt
+# OASIS_STOP
+<lib/*.ml{,i}> : syntax_camlp4o

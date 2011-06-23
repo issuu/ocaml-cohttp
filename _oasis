@@ -11,6 +11,5 @@ Synopsis: light http library
 Library cohttp
   Path: lib
   Modules: Http_client
-  Pack: true
   Install$: true
-  BuildDepends: lwt, lwt.unix, netshm
+  BuildDepends: lwt, lwt.syntax, netstring
