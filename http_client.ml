@@ -36,6 +36,9 @@ let url_RE = Pcre.regexp "^([\\w.-]+)(:(\\d+))?(/.*)?$"
 
 let tcp_bufsiz = 4096 (* for TCP I/O *)
 
+let display fmt =
+  Printf.ksprintf (fun s -> print_endline s; flush stdout) fmt
+
 let parse_url url =
   try
     let subs =
@@ -156,16 +159,19 @@ let content_length_of_content_range headers =
 let read_response inchan response_body =
   lwt (_, status) = Http_parser.parse_response_fst_line inchan in
   lwt headers = Http_parser.parse_headers inchan in
+  (* List.iter (fun (el,el2) -> display "header %s %s\n" el el2) headers; *)
   let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
   let content_length_opt = content_length_of_content_range headers in
   (* a status code of 206 (Partial) will typicall accompany "Content-Range" 
      response header *)
+  display "\nfirst passage here !\n"; 
   match response_body with
     | `String -> (
       lwt resp = 
+        display "\nseconde passage here !\n";
         match content_length_opt with
-          | Some count -> Lwt_io.read ~count inchan
-          | None -> Lwt_io.read inchan
+          | Some count -> display "\n third passage here !\n"; Lwt_io.read ~count inchan
+          | None -> display "\n third passage here ! without count\n"; Lwt_io.read inchan
       in
       match code_of_status status with
         | 200 | 206 -> return (`S (headers, resp))

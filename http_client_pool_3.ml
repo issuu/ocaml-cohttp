@@ -54,8 +54,11 @@ module Make = functor (C : Http_conf) ->
 
     exception No_pool of string
     let sock_pool = ref None
-      
-    let call headers kind request_body url response_body input output =
+
+    let connect sockaddr iofn =
+      Lwt_io.with_connection (* ~buffer_size:tcp_bufsiz *) sockaddr iofn (* check when buffer_size can be usefule *)
+
+    let call headers kind request_body url response_body socket =
       let meth = match kind with
         | `GET -> "GET"
         | `HEAD -> "HEAD"
@@ -63,19 +66,23 @@ module Make = functor (C : Http_conf) ->
         | `DELETE -> "DELETE" 
         | `POST -> "POST" in
       let endp = Http_client.parse_url url in
-      (try_lwt
-        display "url = %s\n" url;
-         Http_client.request output headers meth request_body endp
-       with exn ->
-         display "Error in write %s" (Printexc.to_string exn);
-         fail (Tcp_error (Write, exn))
-      ) >>= fun _ -> (
-        try_lwt
-          Http_client.read_response input response_body
-        with
-          | (Http_error _) as e -> display "Error in read %s" (Printexc.to_string e); fail e
-          | exn -> display "Error in read 2 %s" (Printexc.to_string exn); fail (Tcp_error (Read, exn))
-       )
+      try_lwt
+        connect socket
+        (fun (input, output) ->
+          (try_lwt
+             Http_client.request output headers meth request_body endp
+           with exn -> 
+             fail (Tcp_error (Write, exn))
+          ) >> (
+            try_lwt
+              Http_client.read_response input response_body
+            with
+              | (Http_error _) as e -> fail e
+              | exn -> fail (Tcp_error (Read, exn))
+           ))
+      with
+        | (Tcp_error _ | Http_error _) as e -> fail e
+        | exn -> fail (Tcp_error (Connect, exn))
 
 
     (* if a error is raise lwt_pool.use recreate a new pool with the function create_socket *)
@@ -85,11 +92,10 @@ module Make = functor (C : Http_conf) ->
          | None -> raise (No_pool "the pool has not been created, maybe you forget to call: init address port")
        in
       try_lwt
-        Lwt_pool.use sock_pool (fun (input, output) ->
-         call headers kind request_body url response_body input output)
+        Lwt_pool.use sock_pool (fun socket -> call headers kind request_body url response_body socket)
       with exp ->
         (* if the request fail 5 time in a row, drop the request and raise the exception *)
-        if loop >= 5
+        if loop >= 5 
         then fail exp
         else access_pool ~loop:(loop + 1) headers kind request_body url response_body
 
@@ -121,38 +127,22 @@ module Make = functor (C : Http_conf) ->
 
 
     let memory = ref []
-
-
+    
     let create_socket host port =
-      display "create socket function";
-      let hent = Unix.gethostbyname host in
-      let sockaddr = Unix.ADDR_INET (hent.Unix.h_addr_list.(0), port) in
-      lwt (input, output) = Lwt_io.open_connection sockaddr in
-      (* let fd = Lwt_unix.socket (Unix.domain_of_sockaddr sockaddr) Unix.SOCK_STREAM 0 in
-          Lwt_unix.connect fd sockaddr >>= fun _ ->
-          display "connect in create function";
-          let input = Lwt_io.of_fd ~close:(fun () -> display "A socket has been closed"; Lwt_unix.close fd) ~mode:Lwt_io.input fd in
-          let output = Lwt_io.of_fd ~close:(fun () -> display "A socket has been closed"; Lwt_unix.close fd) ~mode:Lwt_io.output fd in *)
-      memory := (input, output)::!memory;
-      (* display "end of create function"; *)
-      return (input, output)
+      lwt sock = Http_misc.build_sockaddr (host, port) in
+      memory := sock::!memory;
+      return sock
 
     let init sock_nb host port =
       sock_pool := Some (Lwt_pool.create sock_nb ~check:(fun _ f -> f false) (fun _ -> create_socket host port))
 
     let close_all_socket () =
       sock_pool := None;
-      Lwt_list.iter_p (
-        fun (input, output) -> try_lwt Lwt_io.close input >> Lwt_io.close output with _ -> return ()
-      ) !memory >>= fun _ ->
+      Lwt_list.iter_p (fun sock -> try_lwt (Lwt_unix.close sock) with _ -> return ()) !memory >>
         memory := [];
         return ()
 
-
     let _ =
-      let (host, _, _) = Http_client.parse_url C.host in
-      display "nb_socket = %d, host = %s, port = %d" C.nb_socket C.host C.port;
-      init C.nb_socket host C.port
+      init C.nb_socket C.host C.port
 
 end
-

@@ -64,4 +64,7 @@ module Make :
         ?headers:Http_client.headers ->
         string -> Lwt_io.output_channel -> Http_client.headers Lwt.t
 
+      val close_all_socket :
+        unit -> unit Lwt.t
+
     end
