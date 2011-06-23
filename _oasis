@@ -1,0 +1,16 @@
+OASISFormat: 0.1
+Name: ocaml-cohttp
+Version: 0.0.1
+LicenseFile: COPYING
+License: PROP
+Authors: 
+BuildTools: ocamlbuild
+Plugins: DevFiles (0.2), META (0.2)
+Synopsis: light http library
+
+Library cohttp
+  Path: lib
+  Modules: Http_client
+  Pack: true
+  Install$: true
+  BuildDepends: lwt, lwt.unix, netshm
