@@ -1,9 +1,23 @@
 # OASIS_START
-# DO NOT EDIT (digest: 608a5d2ba1c594f5ef6417c70273773a)
+# DO NOT EDIT (digest: 73329be1503ba7839de975fbf0e57ff5)
 # Library cohttp
 "lib": include
 <lib/*.ml{,i}>: pkg_netstring
 <lib/*.ml{,i}>: pkg_lwt.syntax
 <lib/*.ml{,i}>: pkg_lwt
+# Executable bench
+<bench/parallel.{native,byte}>: oasis_executable_bench_byte
+<bench/*.ml{,i}>: oasis_executable_bench_byte
+<bench/parallel.{native,byte}>: oasis_executable_bench_native
+<bench/*.ml{,i}>: oasis_executable_bench_native
+<bench/parallel.{native,byte}>: use_cohttp
+<bench/parallel.{native,byte}>: pkg_netstring
+<bench/parallel.{native,byte}>: pkg_lwt.syntax
+<bench/parallel.{native,byte}>: pkg_lwt
+<bench/*.ml{,i}>: use_cohttp
+<bench/*.ml{,i}>: pkg_netstring
+<bench/*.ml{,i}>: pkg_lwt.syntax
+<bench/*.ml{,i}>: pkg_lwt
 # OASIS_STOP
 <lib/*.ml{,i}> : syntax_camlp4o
+<bench/*.ml{,i}> : syntax_camlp4o

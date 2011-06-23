@@ -13,3 +13,12 @@ Library cohttp
   Modules: Http_client
   Install$: true
   BuildDepends: lwt, lwt.syntax, netstring
+
+Executable bench
+  Path:         bench
+  MainIs:       parallel.ml
+  Install:      false
+  ByteOpt: -thread 
+  NativeOpt: -thread
+  CompiledObject: best
+  BuildDepends: lwt, lwt.syntax, cohttp
