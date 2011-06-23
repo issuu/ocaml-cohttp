@@ -128,12 +128,8 @@ module Make = functor (C : Http_conf) ->
       let hent = Unix.gethostbyname host in
       let sockaddr = Unix.ADDR_INET (hent.Unix.h_addr_list.(0), port) in
       lwt (input, output) = Lwt_io.open_connection sockaddr in
-      (* let fd = Lwt_unix.socket (Unix.domain_of_sockaddr sockaddr) Unix.SOCK_STREAM 0 in
-          Lwt_unix.connect fd sockaddr >>= fun _ ->
-          display "connect in create function";
-          let input = Lwt_io.of_fd ~close:(fun () -> display "A socket has been closed"; Lwt_unix.close fd) ~mode:Lwt_io.input fd in
-          let output = Lwt_io.of_fd ~close:(fun () -> display "A socket has been closed"; Lwt_unix.close fd) ~mode:Lwt_io.output fd in *)
       memory := (input, output)::!memory;
+      
       (* display "end of create function"; *)
       return (input, output)
 
