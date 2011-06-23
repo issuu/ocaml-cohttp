@@ -34,6 +34,7 @@ type informational_status =
   [ `Continue
   | `Switching_protocols
   ]
+
 type success_status =
   [ `OK
   | `Created
@@ -43,6 +44,7 @@ type success_status =
   | `Reset_content
   | `Partial_content
   ]
+
 type redirection_status =
   [ `Multiple_choices
   | `Moved_permanently
