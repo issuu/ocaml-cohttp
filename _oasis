@@ -10,9 +10,9 @@ Synopsis: light http library
 
 Library cohttp
   Path: lib
-  Modules: Http_client
+  Modules: Http_misc, Http_common, Http_constants, Http_cookie, Http_message, Http_parser, Http_parser_sanity, Http_request, Http_response, Http_types, Http_client, Http_pool
   Install$: true
-  BuildDepends: lwt, lwt.syntax, netstring
+  BuildDepends: lwt, lwt.unix, lwt.syntax, netstring
 
 Executable bench
   Path:         bench
