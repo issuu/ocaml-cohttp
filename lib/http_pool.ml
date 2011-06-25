@@ -47,7 +47,7 @@ module Make (Config: C) =
          Lwt_io.read_line ic 
          >>= function
            | "0" ->  Lwt_io.read_line ic >>= fun _ -> return (Buffer.contents buf)
-           | size_s -> let count = int_of_string ("0x"^size_s) in Printf.printf "Reading %s %d\n" size_s count ;
+           | size_s -> let count = int_of_string ("0x"^size_s) in 
                        let s = String.create count in 
                        Lwt_io.read_into_exactly inchan s 0 count
                        >>= fun _ -> Buffer.add_string buf s ; Lwt_io.read_line ic >>= fun _ -> loop ic in
@@ -62,7 +62,7 @@ module Make (Config: C) =
           lwt (_, status) = Http_parser.parse_response_fst_line inchan in
           lwt headers = Http_parser.parse_headers inchan in
           let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
-          List.iter (fun (h,v) -> print_endline (h  ^ " : " ^ v)) headers ;
+          (* List.iter (fun (h,v) -> print_endline (h  ^ " : " ^ v)) headers ; *)
           (* a status code of 206 (Partial) will typicall accompany "Content-Range" 
              response header *)
           
