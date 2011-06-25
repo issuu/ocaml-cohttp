@@ -1,1 +1,3 @@
 CoHTTP is an OCaml library for creating HTTP daemons.  It uses simple cooperative threading via the LWT library to handle concurrency, making it quite lightweight and portable.
+
+Http_pool is a turbocharger for cohttp. It includes some HTTP 1.1 hacks, and it might have broken the stock http_client
