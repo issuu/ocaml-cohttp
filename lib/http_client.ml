@@ -102,7 +102,7 @@ let build_req_header headers meth address path body =
   let serialize_header name value prev =
     sprintf "%s\r\n%s: %s" prev name value in
   let hdrst = Hashtbl.fold serialize_header hdrht "" in
-  sprintf "%s %s HTTP/1.0%s\r\n\r\n" meth path hdrst
+  sprintf "%s %s HTTP/1.1%s\r\n\r\n" meth path hdrst (* <- certain? *)
 
 let request outchan headers meth body (address, _, path) =
   let headers = match headers with None -> [] | Some hs -> hs in
@@ -168,7 +168,7 @@ let read_response inchan response_body =
   match response_body with
     | `String -> (
       lwt resp = 
-        display "\nseconde passage here !\n";
+        display "\nsecond passage here !\n";
         match content_length_opt with
           | Some count -> display "\n third passage here !\n"; Lwt_io.read ~count inchan
           | None -> display "\n third passage here ! without count\n"; Lwt_io.read inchan

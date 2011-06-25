@@ -11,6 +11,7 @@ module type C =
 
 module Make (Config: C) = 
   struct
+    open Http_common
 
     (* global conf parameters *********************************************************)
     let pool_size = int_of_string (Config.get_param "http_pool_size")
@@ -29,9 +30,51 @@ module Make (Config: C) =
         Hashtbl.find links endpoint 
       with Not_found -> let pool = create_pool endpoint in Hashtbl.add links endpoint pool ; pool
 
-
+        
+     let clean_pool links = 
+       
+     let clean () = 
+       Hashtbl.iter clean_pool links
     (* helpers ************************************************************************)
-    
+
+     let rec read acc ic = 
+       Lwt_io.read_line ic 
+       >>= function
+         | "" -> return acc
+         | s -> read (acc^s) ic  
+
+     let read_response inchan response_body =
+     lwt (_, status) = Http_parser.parse_response_fst_line inchan in
+     lwt headers = Http_parser.parse_headers inchan in
+     (* List.iter (fun (el,el2) -> display "header %s %s\n" el el2) headers; *)
+     let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
+     let content_length_opt = Http_client.content_length_of_content_range headers in
+  (* a status code of 206 (Partial) will typicall accompany "Content-Range" 
+     response header *)
+  
+     match response_body with
+       | `String -> (
+                    lwt resp = 
+  
+                      match content_length_opt with
+                        | Some count -> read "" inchan
+                        | None -> read "" inchan
+                      in
+                    match code_of_status status with
+                      | 200 | 206 -> return (`S (headers, resp))
+                      | code -> fail (Http_client.Http_error (code, headers, resp))
+       )
+       | `OutChannel outchan -> (
+                                lwt () = 
+                                  match content_length_opt with
+                                    | Some count -> Http_client.read_write_count ~count inchan outchan 
+                                    | None -> Http_client.read_write inchan outchan
+                                  in
+                                match code_of_status status with
+                                  | 200 | 206 -> return (`C headers)
+                                  | code -> fail (Http_client.Http_error (code, headers, ""))
+       )
+
      let call headers kind request_body url response_body =
        let meth = match kind with
          | `GET -> "GET"
@@ -49,7 +92,7 @@ module Make (Config: C) =
               fail (Http_client.Tcp_error (Http_client.Write, exn))
            ) >> (
              try_lwt
-               Http_client.read_response i response_body
+               read_response i response_body
                  with
                    | (Http_client.Http_error _) as e -> fail e
                    | exn -> fail (Http_client.Tcp_error (Http_client.Read, exn))
