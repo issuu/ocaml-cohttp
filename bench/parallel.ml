@@ -37,5 +37,5 @@ let _ =
   display "> sequential" ; 
   speedtest sequential n;
   display "> parallel" ; 
-   speedtest parallel n  
+  speedtest parallel n  
   

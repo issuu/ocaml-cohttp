@@ -14,11 +14,12 @@ Library cohttp
   Install$: true
   BuildDepends: lwt, lwt.unix, lwt.syntax, netstring
 
+
 Executable bench
   Path:         bench
-  MainIs:       parallel.ml
+  MainIs:       turboaws.ml
   Install:      false
   ByteOpt: -thread 
   NativeOpt: -thread
   CompiledObject: best
-  BuildDepends: lwt, lwt.syntax, cohttp
+  BuildDepends: lwt, lwt.syntax, cohttp, aws
