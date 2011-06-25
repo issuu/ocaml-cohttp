@@ -30,52 +30,58 @@ module Make (Config: C) =
         Hashtbl.find links endpoint 
       with Not_found -> let pool = create_pool endpoint in Hashtbl.add links endpoint pool ; pool
 
-        
-     let clean_pool links = 
-       
-     let clean () = 
-       Hashtbl.iter clean_pool links
     (* helpers ************************************************************************)
+         
+     let read ic =
+       let buf = Buffer.create 0 in 
+       let rec loop ic =
+         Lwt_io.read_line ic 
+         >>= function
+           | "" -> return (Buffer.contents buf)
+           | s -> Buffer.add_string buf s; loop ic in 
+       loop ic
 
-     let rec read acc ic = 
-       Lwt_io.read_line ic 
-       >>= function
-         | "" -> return acc
-         | s -> read (acc^s) ic  
+     let read_chunked inchan = 
+       let buf = Buffer.create 0 in 
+       let rec loop ic = 
+         Lwt_io.read_line ic 
+         >>= function
+           | "0" ->  Lwt_io.read_line ic >>= fun _ -> return (Buffer.contents buf)
+           | size_s -> let count = int_of_string ("0x"^size_s) in Printf.printf "Reading %s %d\n" size_s count ;
+                       let s = String.create count in 
+                       Lwt_io.read_into_exactly inchan s 0 count
+                       >>= fun _ -> Buffer.add_string buf s ; Lwt_io.read_line ic >>= fun _ -> loop ic in
+       loop inchan 
+     
+     let check_headers label headers = 
+       try 
+         Some (List.assoc label headers)
+       with Not_found -> None 
 
-     let read_response inchan response_body =
-     lwt (_, status) = Http_parser.parse_response_fst_line inchan in
-     lwt headers = Http_parser.parse_headers inchan in
-     (* List.iter (fun (el,el2) -> display "header %s %s\n" el el2) headers; *)
-     let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
-     let content_length_opt = Http_client.content_length_of_content_range headers in
-  (* a status code of 206 (Partial) will typicall accompany "Content-Range" 
-     response header *)
-  
-     match response_body with
-       | `String -> (
-                    lwt resp = 
-  
-                      match content_length_opt with
-                        | Some count -> read "" inchan
-                        | None -> read "" inchan
-                      in
-                    match code_of_status status with
-                      | 200 | 206 -> return (`S (headers, resp))
-                      | code -> fail (Http_client.Http_error (code, headers, resp))
-       )
-       | `OutChannel outchan -> (
-                                lwt () = 
-                                  match content_length_opt with
-                                    | Some count -> Http_client.read_write_count ~count inchan outchan 
-                                    | None -> Http_client.read_write inchan outchan
-                                  in
-                                match code_of_status status with
-                                  | 200 | 206 -> return (`C headers)
-                                  | code -> fail (Http_client.Http_error (code, headers, ""))
-       )
-
-     let call headers kind request_body url response_body =
+     let read_response inchan =
+          lwt (_, status) = Http_parser.parse_response_fst_line inchan in
+          lwt headers = Http_parser.parse_headers inchan in
+          let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
+          List.iter (fun (h,v) -> print_endline (h  ^ " : " ^ v)) headers ;
+          (* a status code of 206 (Partial) will typicall accompany "Content-Range" 
+             response header *)
+          
+          match check_headers "transfer-encoding" headers with 
+            | Some "chunked" ->
+               lwt resp = read_chunked inchan in
+                      (match code_of_status status with
+                        | 200 | 206 -> return (`S (headers, resp))
+                        | code -> fail (Http_client.Http_error (code, headers, resp)))
+            | _ -> 
+               lwt resp = read inchan in
+                      (match code_of_status status with
+                        | 200 | 206 -> return (`S (headers, resp))
+                        | code -> fail (Http_client.Http_error (code, headers, resp)))
+            
+              
+       
+              
+     let call headers kind request_body url =
        let meth = match kind with
          | `GET -> "GET"
          | `HEAD -> "HEAD"
@@ -92,14 +98,14 @@ module Make (Config: C) =
               fail (Http_client.Tcp_error (Http_client.Write, exn))
            ) >> (
              try_lwt
-               read_response i response_body
+               read_response i
                  with
                    | (Http_client.Http_error _) as e -> fail e
                    | exn -> fail (Http_client.Tcp_error (Http_client.Read, exn))
             ))
         
      let call_to_string headers kind request_body url =
-        lwt resp = call headers kind request_body url `String in
+        lwt resp = call headers kind request_body url in
      (* assert relation between request and response kind *)
         match resp with
           | `S hb -> return hb
