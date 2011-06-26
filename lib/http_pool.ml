@@ -21,7 +21,7 @@ module Make (Config: C) =
     let create_pool (host, port) =
       let hent = Unix.gethostbyname host in
       let sockaddr = Unix.ADDR_INET (hent.Unix.h_addr_list.(0), port) in
-      let create () = Lwt_io.open_connection sockaddr in 
+      let create () = Printf.printf "o"; flush stdout ; Lwt_io.open_connection sockaddr in 
       let check _ f = f false in
       Lwt_pool.create ~check pool_size create 
 
@@ -46,7 +46,7 @@ module Make (Config: C) =
        let rec loop ic = 
          Lwt_io.read_line ic 
          >>= function
-           | "0" ->  Lwt_io.read_line ic >>= fun _ -> return (Buffer.contents buf)
+           | "0" -> Printf.printf "[" ; flush stdout ; Lwt_io.read_line ic >>= fun _ -> Printf.printf "]"; flush stdout;  return (Buffer.contents buf)
            | size_s -> let count = int_of_string ("0x"^size_s) in 
                        let s = String.create count in 
                        Lwt_io.read_into_exactly inchan s 0 count
@@ -68,7 +68,9 @@ module Make (Config: C) =
           
           match check_headers "transfer-encoding" headers with 
             | Some "chunked" ->
-               lwt resp = read_chunked inchan in
+              Printf.printf "{" ; flush stdout ;
+              lwt resp = read_chunked inchan in 
+              Printf.printf "}" ; flush stdout ;
                       (match code_of_status status with
                         | 200 | 206 -> return (`S (headers, resp))
                         | code -> fail (Http_client.Http_error (code, headers, resp)))
@@ -78,8 +80,7 @@ module Make (Config: C) =
                         | 200 | 206 -> return (`S (headers, resp))
                         | code -> fail (Http_client.Http_error (code, headers, resp)))
             
-              
-       
+                     
               
      let call headers kind request_body url =
        let meth = match kind with

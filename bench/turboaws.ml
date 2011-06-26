@@ -47,14 +47,36 @@ let rec sequential =
         (fun () -> touch (Printf.sprintf "item_%d" (Random.int 10000)) () >>= fun _ -> Printf.printf "." ; flush stdout ; return ())
         (fun e -> Printf.printf "X" ; flush stdout; return ())
       >>= fun () -> sequential (n-1)
+
+let i = ref 0 
   
 let parallel n = 
   let l = Array.to_list ( Array.init n (fun _ -> touch (Printf.sprintf "item_%d" (Random.int 10000))) ) in 
-  Lwt_list.iter_p
+  let l = List.map
     (fun f -> catch 
-      (fun () -> f () >>= fun _ -> Printf.printf "." ; flush stdout; return ())
+      (fun () -> f () >>= fun _ -> Printf.printf "."; flush stdout; return ())
       (fun _ -> Printf.printf "X" ; flush stdout ; return ())
-    ) l 
+    ) l in
+  Lwt.join l 
+
+(* google *)
+(*
+
+let google () = 
+  Client.get "http://news.google.com" 
+  >>= function (_, s) -> return ()
+
+let parallel n = 
+  let l = Array.to_list ( Array.init n (fun _ -> google)) in
+  let l = List.map
+    (fun f -> catch 
+      (fun () -> f () >>= fun _ -> Printf.printf "."; flush stdout; return ())
+      (fun _ -> Printf.printf "X" ; flush stdout ; return ())
+    ) l in
+  Lwt.join l 
+
+*)
+
     
 (* main invocation ******************************************************************)
     
