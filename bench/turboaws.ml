@@ -28,16 +28,21 @@ module Sdb = SDB_factory.Make (Client)
 exception Service_unavailable
 
 let r = ref 0 
-let touch item_name () = 
-  Sdb.put_attributes ~replace:true
-    Keys.creds
-    (Config.get_param "domain")
-    item_name
-    [ "last_access", string_of_float (Unix.time ()) ]
-    >>= function 
-      | `Ok -> incr r ;  return ()
-      | `Error (503, _) -> display "service unavailable" ; raise Service_unavailable (* lower the transaction rate *)
-      | _ -> failwith "panic absolue"
+let rec touch item_name () = 
+  catch 
+    (fun () -> 
+      Sdb.put_attributes ~replace:true
+        Keys.creds
+        (Config.get_param "domain")
+        item_name
+        [ "last_access", string_of_float (Unix.time ()) ]
+      >>= function 
+        | `Ok -> incr r ;  return ()
+        | `Error (503, _) -> display "service unavailable" ; raise Service_unavailable (* lower the transaction rate *)
+        | _ -> failwith "panic")
+    (function 
+      | Service_unavailable -> raise Service_unavailable 
+      | _ -> Printf.printf "r" ; flush stdout ; Lwt_unix.sleep 0.1 >>= touch item_name)
 
 let create_domain _ = 
   Sdb.create_domain Keys.creds (Config.get_param "domain")
@@ -59,7 +64,7 @@ let parallel n =
   let l = List.map
     (fun f -> catch 
       (fun () -> f () >>= fun _ -> Printf.printf "."; flush stdout; return ())
-      (fun _ -> Printf.printf "X" ; flush stdout ; return ())
+      (fun _ -> Printf.printf "x" ; flush stdout ; return ())
     ) l in
   Lwt.join l 
 
