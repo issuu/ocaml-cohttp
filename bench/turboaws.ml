@@ -25,13 +25,19 @@ module Sdb = SDB_factory.Make (Client)
 
 (* command **************************************************************************)
 
+exception Service_unavailable
+
+let r = ref 0 
 let touch item_name () = 
   Sdb.put_attributes ~replace:true
     Keys.creds
     (Config.get_param "domain")
     item_name
     [ "last_access", string_of_float (Unix.time ()) ]
-    >>= fun _ -> return ()
+    >>= function 
+      | `Ok -> incr r ;  return ()
+      | `Error (503, _) -> display "service unavailable" ; raise Service_unavailable (* lower the transaction rate *)
+      | _ -> failwith "panic absolue"
 
 let create_domain _ = 
   Sdb.create_domain Keys.creds (Config.get_param "domain")
@@ -47,8 +53,6 @@ let rec sequential =
         (fun () -> touch (Printf.sprintf "item_%d" (Random.int 10000)) () >>= fun _ -> Printf.printf "." ; flush stdout ; return ())
         (fun e -> Printf.printf "X" ; flush stdout; return ())
       >>= fun () -> sequential (n-1)
-
-let i = ref 0 
   
 let parallel n = 
   let l = Array.to_list ( Array.init n (fun _ -> touch (Printf.sprintf "item_%d" (Random.int 10000))) ) in 
@@ -61,7 +65,6 @@ let parallel n =
 
 (* google *)
 (*
-
 let google () = 
   Client.get "http://news.google.com" 
   >>= function (_, s) -> return ()
@@ -74,7 +77,6 @@ let parallel n =
       (fun _ -> Printf.printf "X" ; flush stdout ; return ())
     ) l in
   Lwt.join l 
-
 *)
 
     
@@ -87,5 +89,5 @@ let _ =
     delete_domain () 
     >>= create_domain
     >>= mesure parallel nb
-    >>= fun (t, _, _) -> display "elapsed time: %fs; rps: %f" t ((float_of_int nb) /. t); delete_domain ())
+    >>= fun (t, _, _) -> display "elapsed time: %fs; rps: %f; success %d" t ((float_of_int nb) /. t) !r; delete_domain ())
     
