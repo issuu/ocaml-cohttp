@@ -1,6 +1,8 @@
 (* http pool, for massive parallel connections *)
 
 open Lwt
+let display fmt = Printf.ksprintf (fun s -> print_endline s) fmt
+
 
 (* remember to add timeouts at some point *)
 
@@ -101,7 +103,7 @@ module Make (Config: C) =
              try_lwt
                read_response i
                  with
-                   | (Http_client.Http_error _) as e -> fail e
+                   | (Http_client.Http_error (code, h, c)) as e -> display "> http error %d %s" code c ;  fail e
                    | exn -> fail (Http_client.Tcp_error (Http_client.Read, exn))
             ))
         

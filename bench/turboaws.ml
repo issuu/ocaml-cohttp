@@ -85,7 +85,7 @@ let _ =
   let nb = int_of_string (Config.get_param "nb_request") in
   Lwt_main.run (
     delete_domain () 
-    >>= delete_domain
+    >>= create_domain
     >>= mesure parallel nb
     >>= fun (t, _, _) -> display "elapsed time: %fs; rps: %f" t ((float_of_int nb) /. t); delete_domain ())
     
