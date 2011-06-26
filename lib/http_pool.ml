@@ -114,5 +114,5 @@ module Make (Config: C) =
     (* command ************************************************************************)
 
      let get ?headers url = call_to_string headers `GET `None url
-        
+     let post ?headers ?(body=`None) url = call_to_string headers `POST body url
   end 
