@@ -50,7 +50,7 @@ let create_domain _ =
 let delete_domain _ = 
   Sdb.delete_domain Keys.creds (Config.get_param "domain")
 
-let rec sequential =
+let sequential rec =
   function 
     | 0 -> return () 
     | n ->
@@ -69,6 +69,7 @@ let parallel n =
   Lwt.join l 
 
 (* google *)
+
 (*
 let google () = 
   Client.get "http://news.google.com" 

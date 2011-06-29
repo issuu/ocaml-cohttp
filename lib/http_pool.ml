@@ -80,8 +80,7 @@ module Make (Config: C) =
                  | 200 | 206 -> return (`S (headers, resp))
                  | code -> fail (Http_client.Http_error (code, headers, resp)))
             
-                     
-              
+                            
      let rec call ?(retry=true) headers kind request_body endp (i, o) =
        let meth = match kind with
          | `GET -> "GET"
@@ -104,13 +103,11 @@ module Make (Config: C) =
                        Lwt_unix.sleep 0.1 
                        >>= fun _ -> call ~retry:false headers kind request_body endp (i, o))
                    | (Http_client.Http_error (code, h, c)) as e -> fail e
-                   | exn -> fail (Http_client.Tcp_error (Http_client.Read, exn))
-            )
+                   | exn -> fail (Http_client.Tcp_error (Http_client.Read, exn)))
         
      let call_to_string headers kind request_body url =
        let (host, port, _) as endp = Http_client.parse_url url in
        let links = lookup (host, port) in 
-
        Lwt_pool.use links
          (fun s ->
            lwt resp = call headers kind request_body endp s in

@@ -225,6 +225,7 @@ let call_to_string headers kind request_body url =
     | _ -> assert false
 
 let call_to_chan headers kind request_body url outchan =
+  print_endline "legacy http client called" ;
   lwt resp = call headers kind request_body url (`OutChannel outchan) in
   (* assert relation between request and response kind *)
   match resp with

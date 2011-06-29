@@ -13,13 +13,3 @@ Library cohttp
   Modules: Http_misc, Http_common, Http_constants, Http_cookie, Http_message, Http_parser, Http_parser_sanity, Http_request, Http_response, Http_types, Http_client, Http_pool
   Install$: true
   BuildDepends: lwt, lwt.unix, lwt.syntax, netstring
-
-
-Executable bench
-  Path:         bench
-  MainIs:       turboaws.ml
-  Install:      false
-  ByteOpt: -thread 
-  NativeOpt: -thread
-  CompiledObject: best
-  BuildDepends: lwt, lwt.syntax, cohttp, aws
