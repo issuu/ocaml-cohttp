@@ -84,7 +84,7 @@ let content_length_header s =
 
 let default_content_type_h = "Content-Type", "application/x-www-form-urlencoded"
 
-let build_req_header headers meth address path body =
+let build_req_header ?(http=`HTTP_1_0) headers meth address path body =
   let headers = 
     match body with
       | `None -> headers
@@ -102,11 +102,11 @@ let build_req_header headers meth address path body =
   let serialize_header name value prev =
     sprintf "%s\r\n%s: %s" prev name value in
   let hdrst = Hashtbl.fold serialize_header hdrht "" in
-  sprintf "%s %s HTTP/1.1%s\r\n\r\n" meth path hdrst (* <- certain? *)
+  sprintf "%s %s HTTP/1.%d%s\r\n\r\n" meth path (match http with `HTTP_1_1 -> 1 | `HTTP_1_0 -> 0) hdrst
 
-let request outchan headers meth body (address, _, path) =
+let request ?(http=`HTTP_1_0) outchan headers meth body (address, _, path) =
   let headers = match headers with None -> [] | Some hs -> hs in
-  let req_header = build_req_header headers meth address path body in
+  let req_header = build_req_header ~http headers meth address path body in
   lwt () = Lwt_io.write outchan req_header in
   lwt () =
     match body with
@@ -164,14 +164,12 @@ let read_response inchan response_body =
   let content_length_opt = content_length_of_content_range headers in
   (* a status code of 206 (Partial) will typicall accompany "Content-Range" 
      response header *)
-  display "\nfirst passage here !\n"; 
   match response_body with
     | `String -> (
       lwt resp = 
-        display "\nsecond passage here !\n";
         match content_length_opt with
-          | Some count -> display "\n third passage here !\n"; Lwt_io.read ~count inchan
-          | None -> display "\n third passage here ! without count\n"; Lwt_io.read inchan
+          | Some count -> Lwt_io.read ~count inchan
+          | None -> Lwt_io.read inchan
       in
       match code_of_status status with
         | 200 | 206 -> return (`S (headers, resp))

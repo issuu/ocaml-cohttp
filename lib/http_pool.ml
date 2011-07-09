@@ -90,7 +90,7 @@ module Make (Config: C) =
          | `POST -> "POST" in
    
            (try_lwt
-              Http_client.request o headers meth request_body endp
+              Http_client.request ~http:`HTTP_1_1 o headers meth request_body endp
             with exn -> 
               fail (Http_client.Tcp_error (Http_client.Write, exn))
            ) >> (
