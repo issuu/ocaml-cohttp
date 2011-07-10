@@ -107,6 +107,7 @@ let build_req_header ?(http=`HTTP_1_0) headers meth address path body =
 let request ?(http=`HTTP_1_0) outchan headers meth body (address, _, path) =
   let headers = match headers with None -> [] | Some hs -> hs in
   let req_header = build_req_header ~http headers meth address path body in
+  
   lwt () = Lwt_io.write outchan req_header in
   lwt () =
     match body with
@@ -156,6 +157,12 @@ let content_length_of_content_range headers =
   with Not_found ->
     None
 
+
+let rec read_exactly inchan acc = 
+  function 
+    | 0 -> return acc 
+    | count -> Lwt_io.read ~count inchan >>= fun s -> read_exactly inchan (acc ^ s) (count - (String.length s))
+
 let read_response inchan response_body =
   lwt (_, status) = Http_parser.parse_response_fst_line inchan in
   lwt headers = Http_parser.parse_headers inchan in
@@ -168,7 +175,7 @@ let read_response inchan response_body =
     | `String -> (
       lwt resp = 
         match content_length_opt with
-          | Some count -> Lwt_io.read ~count inchan
+          | Some count -> read_exactly inchan "" count 
           | None -> Lwt_io.read inchan
       in
       match code_of_status status with

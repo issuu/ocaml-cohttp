@@ -70,11 +70,13 @@ module Make (Config: C) =
           
           match check_headers "transfer-encoding" headers with 
             | Some "chunked" ->
+              print_endline "chunked" ; 
               lwt resp = read_chunked inchan in 
               (match code_of_status status with
                 | 200 | 206 -> return (`S (headers, resp))
                 | code -> fail (Http_client.Http_error (code, headers, resp)))
             | _ -> 
+              print_endline "no chunk"; (* <- this will stall if there is no chunk and if it is http 1.1 *)
                lwt resp = read inchan in
                (match code_of_status status with
                  | 200 | 206 -> return (`S (headers, resp))
