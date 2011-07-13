@@ -9,7 +9,6 @@ _build
 *keys*
 setup*
 configure
-myocamlbuild*
 *.mllib
 *.clib
 META
