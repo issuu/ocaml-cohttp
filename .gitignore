@@ -7,10 +7,7 @@ _build
 *bug*
 *conf
 *keys*
-setup*
-configure
-*.mllib
-*.clib
-META
 shm*
 *.scrum
+setup.data
+setup.log
