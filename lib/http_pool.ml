@@ -74,13 +74,13 @@ module Make (Config: C) =
               lwt resp = read_chunked inchan in 
               (match code_of_status status with
                 | 200 | 206 -> return (`S (headers, resp))
-                | code -> fail (Http_client.Http_error (code, headers, resp)))
+                | code -> fail (Http_client10.Http_error (code, headers, resp)))
             | _ -> 
               print_endline "no chunk"; (* <- this will stall if there is no chunk and if it is http 1.1 *)
                lwt resp = read inchan in
                (match code_of_status status with
                  | 200 | 206 -> return (`S (headers, resp))
-                 | code -> fail (Http_client.Http_error (code, headers, resp)))
+                 | code -> fail (Http_client10.Http_error (code, headers, resp)))
             
                             
      let rec call ?(retry=true) headers kind request_body endp (i, o) =
@@ -92,23 +92,23 @@ module Make (Config: C) =
          | `POST -> "POST" in
    
            (try_lwt
-              Http_client.request ~http:`HTTP_1_1 o headers meth request_body endp
+              Http_client10.request ~http:`HTTP_1_1 o headers meth request_body endp
             with exn -> 
-              fail (Http_client.Tcp_error (Http_client.Write, exn))
+              fail (Http_client10.Tcp_error (Http_client10.Write, exn))
            ) >> (
              try_lwt
                read_response i
                  with
-                   | (Http_client.Http_error (503, h, c)) when retry -> 
+                   | (Http_client10.Http_error (503, h, c)) when retry -> 
                      ( 
                        Printf.printf "R" ; flush stdout;
                        Lwt_unix.sleep 0.1 
                        >>= fun _ -> call ~retry:false headers kind request_body endp (i, o))
-                   | (Http_client.Http_error (code, h, c)) as e -> fail e
-                   | exn -> fail (Http_client.Tcp_error (Http_client.Read, exn)))
+                   | (Http_client10.Http_error (code, h, c)) as e -> fail e
+                   | exn -> fail (Http_client10.Tcp_error (Http_client10.Read, exn)))
         
      let call_to_string headers kind request_body url =
-       let (host, port, _) as endp = Http_client.parse_url url in
+       let (host, port, _) as endp = Http_client10.parse_url url in
        let links = lookup (host, port) in 
        Lwt_pool.use links
          (fun s ->

@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 6b2cf5ca8ec039300e72dc0df5d9475d)
+# DO NOT EDIT (digest: c283bec0e3d978bd10ff66a0ff530b6a)
 Http_misc
 Http_common
 Http_constants
@@ -10,6 +10,6 @@ Http_parser_sanity
 Http_request
 Http_response
 Http_types
-Http_client
+Http_client10
 Http_pool
 # OASIS_STOP
