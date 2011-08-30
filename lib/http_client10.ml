@@ -185,7 +185,7 @@ let read_response ?(head=false) inchan response_body =
     | `OutChannel outchan -> (
       lwt () = 
         match head, content_length_opt with
-          | true, Some count -> read_write_count ~count inchan outchan 
+          | false, Some count -> read_write_count ~count inchan outchan 
           | _ -> read_write inchan outchan
       in
       match code_of_status status with
