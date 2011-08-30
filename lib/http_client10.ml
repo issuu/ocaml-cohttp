@@ -163,7 +163,7 @@ let rec read_exactly inchan acc =
     | 0 -> return acc 
     | count -> Lwt_io.read ~count inchan >>= fun s -> read_exactly inchan (acc ^ s) (count - (String.length s))
 
-let read_response inchan response_body =
+let read_response ?(head=false) inchan response_body =
   lwt (_, status) = Http_parser.parse_response_fst_line inchan in
   lwt headers = Http_parser.parse_headers inchan in
   (* List.iter (fun (el,el2) -> display "header %s %s\n" el el2) headers; *)
@@ -184,9 +184,9 @@ let read_response inchan response_body =
       )
     | `OutChannel outchan -> (
       lwt () = 
-        match content_length_opt with
-          | Some count -> read_write_count ~count inchan outchan 
-          | None -> read_write inchan outchan
+        match head, content_length_opt with
+          | true, Some count -> read_write_count ~count inchan outchan 
+          | _ -> read_write inchan outchan
       in
       match code_of_status status with
         | 200 | 206 -> return (`C headers)
@@ -213,7 +213,7 @@ let call headers kind request_body url response_body =
          fail (Tcp_error (Write, exn))
       ) >> (
         try_lwt
-          read_response i response_body
+          read_response ~head:(kind = `HEAD) i response_body
         with
           | (Http_error _) as e -> fail e
           | exn -> fail (Tcp_error (Read, exn))
