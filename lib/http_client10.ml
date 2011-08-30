@@ -174,9 +174,9 @@ let read_response ?(head=false) inchan response_body =
   match response_body with
     | `String -> (
       lwt resp = 
-        match content_length_opt with
-          | Some count -> read_exactly inchan "" count 
-          | None -> Lwt_io.read inchan
+        match head, content_length_opt with
+          | false, Some count -> read_exactly inchan "" count 
+          | _ -> Lwt_io.read inchan
       in
       match code_of_status status with
         | 200 | 206 -> return (`S (headers, resp))
