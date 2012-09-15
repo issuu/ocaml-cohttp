@@ -1,10 +1,12 @@
 # OASIS_START
-# DO NOT EDIT (digest: b69b4c72a09a31a7a75fe84cdfb36a2b)
+# DO NOT EDIT (digest: aa780c0acfee84252284da8b4892f100)
 version = "0.0.1"
 description = "light http library"
-requires = "lwt lwt.unix lwt.syntax netstring"
+requires = "lwt lwt.unix lwt.syntax netstring pcre"
 archive(byte) = "cohttp.cma"
+archive(byte, plugin) = "cohttp.cma"
 archive(native) = "cohttp.cmxa"
+archive(native, plugin) = "cohttp.cmxs"
 exists_if = "cohttp.cma"
 # OASIS_STOP
 

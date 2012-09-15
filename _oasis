@@ -14,4 +14,4 @@ Library cohttp
   Install$: true
   ByteOpt: -annot
   NativeOpt: -annot
-  BuildDepends: lwt, lwt.unix, lwt.syntax, netstring
+  BuildDepends: lwt, lwt.unix, lwt.syntax, netstring, pcre
