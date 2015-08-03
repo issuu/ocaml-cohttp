@@ -195,7 +195,7 @@ let read_response ?(head=false) inchan response_body =
 
 let connect (address, port, _) iofn =
   lwt sockaddr = Http_misc.build_sockaddr (address, port) in
-  Lwt_io.with_connection ~buffer_size:tcp_bufsiz sockaddr iofn
+  Lwt_io.with_connection sockaddr iofn
   
 let call headers kind request_body url response_body =
   let meth = match kind with
